@@ -3,21 +3,7 @@ body {
 	background-color: AntiqueWhite;
 }
 
-input {
-	margin-left: 10px;
-}
-
 button {
 	margin: 10px;
 	background-color: green;
-}
-
-h1 {
-	text-align: center;
-	font-size: 40px;
-}
-
-p {
-	text-align: center;
-	font-size: 25px;
 }

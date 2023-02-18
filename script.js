@@ -1,49 +1,115 @@
-let cvs = document.getElementById("canvas");
-let ctx = cvs.getContext("2d");
+const cvs = document.getElementById("canvas");
+const ctx = cvs.getContext("2d");
 
-let map = {
-	sqSize: 50,
-	width: 10, 
-	height: 10
-};
-
-let hero = {
-	x: 4, 
-	y: 3,
-};
-
-let img = new Image();
-img.src = "hero.png";
-
-cvs.width = map.sqSize * map.width;
-cvs.height = map.sqSize * map.height;
-
-redrawCanvas();
-
-cvs.onmousedown = function(e) {
-	let clickX = e.x - cvs.offsetLeft;
-	let clickY = e.y - cvs.offsetTop;
-	let sqX = Math.floor(clickX / map.sqSize);
-	let sqY = Math.floor(clickY / map.sqSize);
-	moveTo(sqX, sqY);
+function GameMap(tilesX, tilesY, tileSize) {
+	this.tilesX = tilesX;
+	this.tilesY = tilesY;
+	this.tileSize = tileSize;
+	this.width = tilesX * tileSize;
+	this.height = tilesY * tileSize;
+	cvs.width = tileSize * tilesX;
+	cvs.height = tileSize * tilesY;
 }
 
-cvs.onkeypress = function(e) {
-	redrawCanvas();
+function Hero(x, y, speed, src){
+	this.x = x;
+	this.y = y;
+	this.speed = speed;
+	this.img = new Image();
+	this.img.src = src;
+	up = false;
+	down = false;
+	left = false;
+	right = false;
 }
 
-function redrawCanvas(){
+let gameMap = new GameMap(10, 10, 48);
+let hero = new Hero(0, 0, 4, "hero.png");
+
+window.requestAnimationFrame(gameLoop);
+
+let secondsPassed;
+let oldTimeStamp;
+let fps;
+
+// върти играта (game loop)
+function gameLoop(timeStamp) {
+	// сметки за fps
+	secondsPassed = (timeStamp - oldTimeStamp) / 1000;
+    oldTimeStamp = timeStamp;
+	fps = Math.round(1 / secondsPassed);
+
+	// console.log(fps);
+
+    draw();
+    window.requestAnimationFrame(gameLoop);
+}
+// рисуване
+function draw(){
+	// изтриване на полето
 	ctx.clearRect(0, 0, cvs.width, cvs.height);
-	for(let i = 0; i < map.width; i++){
-		for(let j = 0; j < map.height; j++){
-			ctx.strokeRect(i * map.sqSize, j * map.sqSize, map.sqSize, map.sqSize);
+
+	// карта
+	ctx.strokeRect(0, 0, cvs.width, cvs.height);
+
+	// герой
+	ctx.drawImage(hero.img, hero.x, hero.y, gameMap.tileSize, gameMap.tileSize);
+}
+// команди от клавиши
+document.onkeydown = function(e) {
+	let key = e.key.toLowerCase();
+	console.log(key);
+
+	if(key == 'a'){
+		hero.left = true;
+	}
+
+	if(key == 'd'){
+		hero.right = true;
+	}
+
+	if(key == 'w'){
+		hero.up = true;
+	}
+
+	if(key == 's'){
+		hero.down = true;
+	}
+
+	move();
+	// console.log(hero.x + " " + hero.y);
+}
+// спиране на движение
+document.onkeyup = function(e) {
+	hero.up = false;
+	hero.down = false;
+	hero.left = false;
+	hero.right = false;
+}
+
+function move(){
+	if(hero.left){
+		if(hero.x > 0){
+			hero.x -= hero.speed;
 		}
 	}
-	ctx.drawImage(img, hero.x * map.sqSize, hero.y * map.sqSize, map.sqSize, map.sqSize);
+
+	if(hero.right){
+		if(hero.x < gameMap.width - hero.speed){
+			hero.x += hero.speed;
+		}
+	}
+
+	if(hero.up){
+		if(hero.y > 0){
+			hero.y -= hero.speed;
+		}
+	}
+
+	if(hero.down){
+		if(hero.y < gameMap.height - hero.speed){
+			hero.y += hero.speed;
+		}
+	}
 }
 
-function moveTo(x, y) {
-	hero.x = x;
-	hero.y = y;
-	redrawCanvas();
-}

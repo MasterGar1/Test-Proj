@@ -22,14 +22,31 @@ class Hero {
 		this.direction = "down";
 		this.spriteCounter = 0;
 		this.sprite = 0;
-		this.spriteUp = new Array(3);
-		this.spriteDown = new Array(3);
-		this.spriteLeft = new Array(3);
-		this.spriteRight = new Array(3);
+		
+		this.health = 50;
+		this.damage = 5;
+	}
+}
+
+class Enemy {
+	constructor(enemyNum){
+		this.speed = 3;
+		this.img = new Image();
+		this.img.src = "hero/down0.png";
+		this.generateStats(enemyNum);
+	}
+	// генерира статистики
+	generateStats(enemyNum){
+		this.health = enemyNum * Math.random() * 1.5 + 20;
+		this.damage = enemyNum * Math.random() + 2;
+		this.x = Math.random() * tilesX * tileSize;
+		this.y = Math.random() * tilesY * tileSize;
 	}
 }
 
 let hero = new Hero(10, 10, 5);
+
+let enemy = new Enemy(0);
 
 window.requestAnimationFrame(gameLoop);
 
@@ -41,12 +58,12 @@ let fps;
 function gameLoop(timeStamp) {
 	// сметки за fps
 	secondsPassed = (timeStamp - oldTimeStamp) / 1000;
-    oldTimeStamp = timeStamp;
+	oldTimeStamp = timeStamp;
 	fps = Math.round(1 / secondsPassed);
 
 	hero.update();
-    draw();
-    window.requestAnimationFrame(gameLoop);
+	draw();
+	window.requestAnimationFrame(gameLoop);
 }
 // рисуване
 function draw(){
@@ -55,6 +72,9 @@ function draw(){
 
 	// карта
 	ctx.strokeRect(0, 0, cvs.width, cvs.height);
+	
+	// противник
+	ctx.drawImage(enemy.img, enemy.x, enemy.y, tileSize, tileSize);
 
 	// герой
 	ctx.drawImage(hero.img, hero.x, hero.y, tileSize, tileSize);
@@ -139,7 +159,7 @@ hero.move = function(){
 	}
 
 	angle /= keysPressed;
-	// като използваме дефиницията за тригономентичните функции, разбираме, че крайната точка в която ще е героя е с координати cos и sin - D(cos(angle);sin(angle))
+	// като използваме дефиницията за тригономентичните функции, разбираме, че крайната точка в която ще е героя е с координати D(cos(angle);sin(angle))
 	let dx = Math.cos(angle) * hero.speed;
 	let dy = Math.sin(angle) * hero.speed;
 	// проверка за краищата на картата
@@ -188,5 +208,12 @@ hero.animate = function(){
 	// TODO: по бърз начин за зареждане на снимки
 	let path = "hero/" + hero.direction + hero.sprite + ".png";
 	hero.img.src = path;
+}
+// преследва героя
+enemy.follow = function(){
+	let dist = Math.sqrt((hero.x - enemy.x) ** 2 + (hero.y - enemy.y) ** 2);
+	
+	let dx = Math.cos(angle) * hero.speed;
+	let dy = Math.sin(angle) * hero.speed;
 }
 

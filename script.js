@@ -32,8 +32,11 @@ class Enemy {
 	constructor(enemyNum){
 		this.speed = 3;
 		this.img = new Image();
-		this.img.src = "hero/down0.png";
+		this.img.src = "enemy/down0.png";
 		this.generateStats(enemyNum);
+		this.direction = "down";
+		this.spriteCounter = 0;
+		this.sprite = 0;
 	}
 	// генерира статистики
 	generateStats(enemyNum){
@@ -62,6 +65,7 @@ function gameLoop(timeStamp) {
 	fps = Math.round(1 / secondsPassed);
 
 	hero.update();
+	enemy.update();
 	draw();
 	window.requestAnimationFrame(gameLoop);
 }
@@ -209,11 +213,49 @@ hero.animate = function(){
 	let path = "hero/" + hero.direction + hero.sprite + ".png";
 	hero.img.src = path;
 }
+// обновяване на всички събития, случили се на противника при всяко завъртане на играта
+enemy.update = function(){
+	enemy.animate();
+	enemy.follow();
+}
 // преследва героя
 enemy.follow = function(){
-	let dist = Math.sqrt((hero.x - enemy.x) ** 2 + (hero.y - enemy.y) ** 2);
-	
-	let dx = Math.cos(angle) * hero.speed;
-	let dy = Math.sin(angle) * hero.speed;
+	let dx = hero.x - enemy.x;
+	let dy = hero.y - enemy.y;
+	let distance = Math.sqrt(dx ** 2 + dy ** 2);
+	let x = enemy.speed * (dx / distance);
+	let y = enemy.speed * (dy / distance);
+
+	if(Math.abs(dx) > Math.abs(dy)){
+		if(dx > 0){
+			enemy.direction = "right";
+		} else {
+			enemy.direction = "left";
+		}
+	} else {
+		if(dy > 0){
+			enemy.direction = "down";
+		} else {
+			enemy.direction = "up";
+		}
+	}
+
+	enemy.x += x;
+	enemy.y += y;
+}
+// сменяне на картинката на противника, в зависимост от какво действие прави
+enemy.animate = function() {
+	enemy.spriteCounter++;
+	if (enemy.spriteCounter > 10) {
+		if (enemy.sprite == 1 || enemy.sprite == 0) {
+			enemy.sprite = 2;
+		} else if (enemy.sprite == 2 || enemy.sprite == 0) {
+			enemy.sprite = 1;
+		}
+		enemy.spriteCounter = 0;
+	}
+	// TODO: по бърз начин за зареждане на снимки
+	let path = "enemy/" + enemy.direction + enemy.sprite + ".png";
+	enemy.img.src = path;
 }
 

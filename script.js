@@ -8,7 +8,7 @@ const tilesY = 18;
 const tileSize = 32;
 cvs.width = tilesX * tileSize;
 cvs.height = tilesY * tileSize;
-// http://kidscanjavascript.com/TUTORIAL/Collisions%20on%20the%20Canvas.php
+
 class Hero {
 	constructor(x, y, speed) {
 		this.x = x;
@@ -24,40 +24,43 @@ class Hero {
 		this.direction = "down";
 		this.spriteCounter = 0;
 		this.sprite = 0;
-		
+
 		this.health = 50;
 		this.damage = 5;
-		this.hitbox = {x: this.x, y: this.y, width: tileSize, height: tileSize};
+		this.attackLength = 50;
+		this.attackWidth = 32;
+		this.hitbox = { x: this.x, y: this.y, width: this.tileSize, height: this.tileSize };
+		this.attackDirection = 0;
 	}
-	
+
 	// обновяване на всички събития, случили се на героя при всяко завъртане на играта
-	update(){
+	update() {
 		this.animate();
 		this.move();
 	}
 	// движение според ъгъла, подаден чрез комбинация от клавиши
-	move(){
+	move() {
 		// според кои бутони са натиснати, намираме ъгъл, по който героят ще ходи
 		// градусните мерки на ъглите са на обратно защото ординатната и абцисната ос на канваса са обърнати !!!
 		let angle = 0;
 		let keysPressed = 0;
-		if(this.right){
+		if (this.right) {
 			angle += 0; // 0
 			keysPressed++;
 		}
 
-		if(this.down){
+		if (this.down) {
 			angle += Math.PI / 2; // π/2
 			keysPressed++;
 		}
 
-		if(this.left){
+		if (this.left) {
 			angle += Math.PI; // π
 			keysPressed++;
 		}
 
-		if(this.up){
-			if(this.right){
+		if (this.up) {
+			if (this.right) {
 				angle += Math.PI / -2; // -π/2
 			}
 			else {
@@ -71,28 +74,28 @@ class Hero {
 		let dx = Math.cos(angle) * this.speed;
 		let dy = Math.sin(angle) * this.speed;
 		// проверка за краищата на картата
-		if(this.x < -dx){
+		if (this.x < -dx) {
 			dx = 0;
 		}
 
-		if(this.x > cvs.width - tileSize - dx){
+		if (this.x > cvs.width - tileSize - dx) {
 			dx = 0;
 		}
 
-		if(this.y < -dy){
+		if (this.y < -dy) {
 			dy = 0;
 		}
-		
-		if(this.y > cvs.height - tileSize - dy){
+
+		if (this.y > cvs.height - tileSize - dy) {
 			dy = 0;
 		}
 		// забрана за използване на противоположни посоки
-		if((this.up && this.down) || (this.right && this.left)){
+		if ((this.up && this.down) || (this.right && this.left)) {
 			dx = 0;
 			dy = 0;
 		}
 		// добавяне на дистанцията
-		if(this.left || this.right || this.up || this.down){
+		if (this.left || this.right || this.up || this.down) {
 			this.x += dx;
 			this.y += dy;
 			this.hitbox.x = this.x;
@@ -100,8 +103,8 @@ class Hero {
 		}
 	}
 	// сменяне на картинката на героя, в зависимост от какво действие прави
-	animate(){
-		if(this.left || this.right || this.up || this.down){
+	animate() {
+		if (this.left || this.right || this.up || this.down) {
 			this.spriteCounter++;
 			if (this.spriteCounter > 10) {
 				if (this.sprite == 1 || this.sprite == 0) {
@@ -119,10 +122,23 @@ class Hero {
 		let path = "hero/" + this.direction + this.sprite + ".png";
 		this.img.src = path;
 	}
+
+	attackRange(clientX, clientY) {
+		let hx = this.x + tileSize / 2;
+		let hy = this.y + tileSize / 2;
+		let dx = hx - clientX;
+		let dy = hy - clientY;
+		let distance = Math.sqrt(dx ** 2 + dy ** 2);
+		let sin = dy / distance;
+		this.attackDirection = -Math.asin(sin);
+		if((dx > 0 && dy < 0) ||(dx > 0 && dy > 0)){
+			this.attackDirection = Math.PI - this.attackDirection;
+		}
+	}
 }
 
 class Enemy {
-	constructor(enemyNum){
+	constructor(enemyNum) {
 		this.speed = 2;
 		this.img = new Image();
 		this.img.src = "enemy/down0.png";
@@ -130,10 +146,10 @@ class Enemy {
 		this.direction = "down";
 		this.spriteCounter = 0;
 		this.sprite = 0;
-		this.hitbox = {x: this.x, y: this.y, width: tileSize, height: tileSize};
+		this.hitbox = { x: this.x, y: this.y, width: tileSize, height: tileSize };
 	}
 	// генерира статистики
-	generateStats(enemyNum){
+	generateStats(enemyNum) {
 		this.health = enemyNum * Math.random() * 1.5 + 20;
 		this.damage = enemyNum * Math.random() + 2;
 		this.x = Math.random() * tilesX * tileSize;
@@ -141,7 +157,7 @@ class Enemy {
 		this.speed += Math.random() * this.speed;
 	}
 	// обновяване на всички събития, случили се на противника при всяко завъртане на играта
-	update(){
+	update() {
 		this.animate();
 		this.follow();
 	}
@@ -153,14 +169,14 @@ class Enemy {
 		let x = this.speed * (dx / distance);
 		let y = this.speed * (dy / distance);
 
-		if(Math.abs(dx) > Math.abs(dy)){
-			if(dx > 0){
+		if (Math.abs(dx) > Math.abs(dy)) {
+			if (dx > 0) {
 				this.direction = "right";
 			} else {
 				this.direction = "left";
 			}
 		} else {
-			if(dy > 0){
+			if (dy > 0) {
 				this.direction = "down";
 			} else {
 				this.direction = "up";
@@ -207,38 +223,53 @@ function gameLoop(timeStamp) {
 	fps = Math.round(1 / secondsPassed);
 
 	hero.update();
-	
-	for(let enemy of enemies){
+
+	for (let enemy of enemies) {
 		enemy.update();
-		if(intersects(enemy.hitbox, hero.hitbox)){
-			console.log("bonk");
+		if (intersection(enemy.hitbox, hero.hitbox)) {
+			
 		}
 	}
-	
+
 	draw();
 	window.requestAnimationFrame(gameLoop);
 }
 // рисуване
-function draw(){
+function draw() {
+	ctx.strokeStyle = "black";
 	// изтриване на полето
 	ctx.clearRect(0, 0, cvs.width, cvs.height);
 
 	// карта
 	ctx.strokeRect(0, 0, cvs.width, cvs.height);
-	
+
 	// противници
-	for(let enemy of enemies){
+	for (let enemy of enemies) {
 		ctx.drawImage(enemy.img, enemy.x, enemy.y, tileSize, tileSize);
 	}
 
 	// герой
 	ctx.drawImage(hero.img, hero.x, hero.y, tileSize, tileSize);
+
+	ctx.beginPath();
+    ctx.arc(hero.x + tileSize/2, hero.y + tileSize/2, 10, 0, Math.PI*2);
+    ctx.closePath();
+    ctx.save();
+    ctx.translate(hero.x + tileSize / 2, hero.y + tileSize / 2);
+	ctx.rotate(hero.attackDirection);
+	ctx.strokeRect(0, -hero.attackWidth/2, hero.attackLength, hero.attackWidth);
+	ctx.restore();
+	for(let enemy of enemies){
+		if(intersection({x: 0, y: -hero.attackWidth/2, width: hero.attackLength, height: hero.attackWidth}, enemy.hitbox)){
+			console.log("hi");
+		}
+	}
 }
 // команди от клавиши
-document.onkeydown = function(e) {
+document.onkeydown = function (e) {
 	let key = e.key.toLowerCase();
 
-	switch(key){
+	switch (key) {
 		case 'w':
 			hero.up = true;
 			hero.direction = "up";
@@ -258,10 +289,10 @@ document.onkeydown = function(e) {
 	}
 }
 // спиране на движение
-document.onkeyup = function(e) {
+document.onkeyup = function (e) {
 	let key = e.key.toLowerCase();
 
-	switch(key){
+	switch (key) {
 		case 'a':
 			hero.left = false;
 			break;
@@ -277,30 +308,27 @@ document.onkeyup = function(e) {
 	}
 }
 // призовава противник
-spawnBtn.onclick = function() {
+spawnBtn.onclick = function () {
 	enemies.push(new Enemy(enemies.length - 1));
 }
 // премахва вдички противници
-killBtn.onclick = function() {
+killBtn.onclick = function () {
 	enemies = [];
 }
-
-function intersection(a, b){
-	let x1 = a.x;
-	let y1 = a.y;
-	let x2 = b.x;
-	let y2 = b.y;
-	let h1 = a.height;
-	let w1 = a.width;
-	let h2 = b.height;
-	let w2 = b.width;
-
-	if (x2 > x1 + w1 || x1 > x2 + w2) {
+// засича къде се намира мишката
+document.onmousemove = function(e) {
+	let clientX = e.clientX;
+	let clientY = e.clientY;
+	hero.attackRange(clientX, clientY);
+}
+// проверява дали два правоъгълника се пресичат
+function intersection(a, b) {
+	if (b.x > a.x + a.width || a.x > b.x + b.width) {
 		return false;
-	} 
-	if (y2 > y1 + h1 || y1 > y2 + h2) {
+	}
+	if (b.y > a.y + a.height || a.y > b.y + b.height) {
 		return false;
-	} 
+	}
 
 	return true;
 }

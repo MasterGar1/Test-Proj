@@ -1,12 +1,14 @@
 const cvs = document.getElementById("canvas");
 const ctx = cvs.getContext("2d");
+const spawnBtn = document.getElementById("spawn");
+const killBtn = document.getElementById("kill");
 
 const tilesX = 18;
 const tilesY = 18;
 const tileSize = 32;
 cvs.width = tilesX * tileSize;
 cvs.height = tilesY * tileSize;
-
+// http://kidscanjavascript.com/TUTORIAL/Collisions%20on%20the%20Canvas.php
 class Hero {
 	constructor(x, y, speed) {
 		this.x = x;
@@ -25,18 +27,110 @@ class Hero {
 		
 		this.health = 50;
 		this.damage = 5;
+		this.hitbox = {x: this.x, y: this.y, width: tileSize, height: tileSize};
+	}
+	
+	// обновяване на всички събития, случили се на героя при всяко завъртане на играта
+	update(){
+		this.animate();
+		this.move();
+	}
+	// движение според ъгъла, подаден чрез комбинация от клавиши
+	move(){
+		// според кои бутони са натиснати, намираме ъгъл, по който героят ще ходи
+		// градусните мерки на ъглите са на обратно защото ординатната и абцисната ос на канваса са обърнати !!!
+		let angle = 0;
+		let keysPressed = 0;
+		if(this.right){
+			angle += 0; // 0
+			keysPressed++;
+		}
+
+		if(this.down){
+			angle += Math.PI / 2; // π/2
+			keysPressed++;
+		}
+
+		if(this.left){
+			angle += Math.PI; // π
+			keysPressed++;
+		}
+
+		if(this.up){
+			if(this.right){
+				angle += Math.PI / -2; // -π/2
+			}
+			else {
+				angle += 3 * Math.PI / 2; // 3π/2
+			}
+			keysPressed++;
+		}
+
+		angle /= keysPressed;
+		// като използваме дефиницията за тригономентичните функции, разбираме, че крайната точка в която ще е героя е с координати D(cos(angle);sin(angle))
+		let dx = Math.cos(angle) * this.speed;
+		let dy = Math.sin(angle) * this.speed;
+		// проверка за краищата на картата
+		if(this.x < -dx){
+			dx = 0;
+		}
+
+		if(this.x > cvs.width - tileSize - dx){
+			dx = 0;
+		}
+
+		if(this.y < -dy){
+			dy = 0;
+		}
+		
+		if(this.y > cvs.height - tileSize - dy){
+			dy = 0;
+		}
+		// забрана за използване на противоположни посоки
+		if((this.up && this.down) || (this.right && this.left)){
+			dx = 0;
+			dy = 0;
+		}
+		// добавяне на дистанцията
+		if(this.left || this.right || this.up || this.down){
+			this.x += dx;
+			this.y += dy;
+			this.hitbox.x = this.x;
+			this.hitbox.y = this.y;
+		}
+	}
+	// сменяне на картинката на героя, в зависимост от какво действие прави
+	animate(){
+		if(this.left || this.right || this.up || this.down){
+			this.spriteCounter++;
+			if (this.spriteCounter > 10) {
+				if (this.sprite == 1 || this.sprite == 0) {
+					this.sprite = 2;
+				} else if (this.sprite == 2 || this.sprite == 0) {
+					this.sprite = 1;
+				}
+				this.spriteCounter = 0;
+			}
+		} else {
+			this.sprite = 0;
+			this.spriteCounter = 0;
+		}
+		// TODO: по бърз начин за зареждане на снимки
+		let path = "hero/" + this.direction + this.sprite + ".png";
+		this.img.src = path;
 	}
 }
 
 class Enemy {
 	constructor(enemyNum){
-		this.speed = 3;
+		this.speed = 2;
 		this.img = new Image();
 		this.img.src = "enemy/down0.png";
 		this.generateStats(enemyNum);
 		this.direction = "down";
 		this.spriteCounter = 0;
 		this.sprite = 0;
+		this.hitbox = {x: this.x, y: this.y, width: tileSize, height: tileSize};
 	}
 	// генерира статистики
 	generateStats(enemyNum){
@@ -44,12 +138,60 @@ class Enemy {
 		this.damage = enemyNum * Math.random() + 2;
 		this.x = Math.random() * tilesX * tileSize;
 		this.y = Math.random() * tilesY * tileSize;
+		this.speed += Math.random() * this.speed;
+	}
+	// обновяване на всички събития, случили се на противника при всяко завъртане на играта
+	update(){
+		this.animate();
+		this.follow();
+	}
+	// преследва героя
+	follow() {
+		let dx = hero.x - this.x;
+		let dy = hero.y - this.y;
+		let distance = Math.sqrt(dx ** 2 + dy ** 2);
+		let x = this.speed * (dx / distance);
+		let y = this.speed * (dy / distance);
+
+		if(Math.abs(dx) > Math.abs(dy)){
+			if(dx > 0){
+				this.direction = "right";
+			} else {
+				this.direction = "left";
+			}
+		} else {
+			if(dy > 0){
+				this.direction = "down";
+			} else {
+				this.direction = "up";
+			}
+		}
+
+		this.x += x;
+		this.y += y;
+		this.hitbox.x = this.x;
+		this.hitbox.y = this.y;
+	}
+	// сменяне на картинката на противника, в зависимост от какво действие прави
+	animate() {
+		this.spriteCounter++;
+		if (this.spriteCounter > 10) {
+			if (this.sprite == 1 || this.sprite == 0) {
+				this.sprite = 2;
+			} else if (this.sprite == 2 || this.sprite == 0) {
+				this.sprite = 1;
+			}
+			this.spriteCounter = 0;
+		}
+		// TODO: по бърз начин за зареждане на снимки
+		let path = "enemy/" + this.direction + this.sprite + ".png";
+		this.img.src = path;
 	}
 }
 
 let hero = new Hero(10, 10, 5);
 
-let enemy = new Enemy(0);
+let enemies = [];
 
 window.requestAnimationFrame(gameLoop);
 
@@ -65,7 +207,14 @@ function gameLoop(timeStamp) {
 	fps = Math.round(1 / secondsPassed);
 
 	hero.update();
-	enemy.update();
+	
+	for(let enemy of enemies){
+		enemy.update();
+		if(intersects(enemy.hitbox, hero.hitbox)){
+			console.log("bonk");
+		}
+	}
+	
 	draw();
 	window.requestAnimationFrame(gameLoop);
 }
@@ -77,8 +226,10 @@ function draw(){
 	// карта
 	ctx.strokeRect(0, 0, cvs.width, cvs.height);
 	
-	// противник
-	ctx.drawImage(enemy.img, enemy.x, enemy.y, tileSize, tileSize);
+	// противници
+	for(let enemy of enemies){
+		ctx.drawImage(enemy.img, enemy.x, enemy.y, tileSize, tileSize);
+	}
 
 	// герой
 	ctx.drawImage(hero.img, hero.x, hero.y, tileSize, tileSize);
@@ -125,137 +276,31 @@ document.onkeyup = function(e) {
 			break;
 	}
 }
-
-// обновяване на всички събития, случили се на героя при всяко завъртане на играта
-hero.update = function(){
-	hero.animate();
-	hero.move();
+// призовава противник
+spawnBtn.onclick = function() {
+	enemies.push(new Enemy(enemies.length - 1));
 }
-// движение според ъгъла, подаден чрез комбинация от клавиши
-hero.move = function(){
-	// според кои бутони са натиснати, намираме ъгъл, по който героят ще ходи
-	// градусните мерки на ъглите са на обратно защото ординатната и абцисната ос на канваса са обърнати !!!
-	let angle = 0;
-	let keysPressed = 0;
-	if(hero.right){
-		angle += 0; // 0
-		keysPressed++;
-	}
-
-	if(hero.down){
-		angle += Math.PI / 2; // π/2
-		keysPressed++;
-	}
-
-	if(hero.left){
-		angle += Math.PI; // π
-		keysPressed++;
-	}
-
-	if(hero.up){
-		if(hero.right){
-			angle += Math.PI / -2; // -π/2
-		}
-		else {
-			angle += 3 * Math.PI / 2; // 3π/2
-		}
-		keysPressed++;
-	}
-
-	angle /= keysPressed;
-	// като използваме дефиницията за тригономентичните функции, разбираме, че крайната точка в която ще е героя е с координати D(cos(angle);sin(angle))
-	let dx = Math.cos(angle) * hero.speed;
-	let dy = Math.sin(angle) * hero.speed;
-	// проверка за краищата на картата
-	if(hero.x < -dx){
-		dx = 0;
-	}
-
-	if(hero.x > cvs.width - tileSize - dx){
-		dx = 0;
-	}
-
-	if(hero.y < -dy){
-		dy = 0;
-	}
-	
-	if(hero.y > cvs.height - tileSize - dy){
-		dy = 0;
-	}
-	// забрана за използване на противоположни посоки
-	if((hero.up && hero.down) || (hero.right && hero.left)){
-		dx = 0;
-		dy = 0;
-	}
-	// добавяне на дистанцията
-	if(hero.left || hero.right || hero.up || hero.down){
-		hero.x += dx;
-		hero.y += dy;
-	}
-}
-// сменяне на картинката на героя, в зависимост от какво действие прави
-hero.animate = function(){
-	if(hero.left || hero.right || hero.up || hero.down){
-		hero.spriteCounter++;
-		if (hero.spriteCounter > 10) {
-			if (hero.sprite == 1 || hero.sprite == 0) {
-				hero.sprite = 2;
-			} else if (hero.sprite == 2 || hero.sprite == 0) {
-				hero.sprite = 1;
-			}
-			hero.spriteCounter = 0;
-		}
-	} else {
-		hero.sprite = 0;
-		hero.spriteCounter = 0;
-	}
-	// TODO: по бърз начин за зареждане на снимки
-	let path = "hero/" + hero.direction + hero.sprite + ".png";
-	hero.img.src = path;
-}
-// обновяване на всички събития, случили се на противника при всяко завъртане на играта
-enemy.update = function(){
-	enemy.animate();
-	enemy.follow();
-}
-// преследва героя
-enemy.follow = function(){
-	let dx = hero.x - enemy.x;
-	let dy = hero.y - enemy.y;
-	let distance = Math.sqrt(dx ** 2 + dy ** 2);
-	let x = enemy.speed * (dx / distance);
-	let y = enemy.speed * (dy / distance);
-
-	if(Math.abs(dx) > Math.abs(dy)){
-		if(dx > 0){
-			enemy.direction = "right";
-		} else {
-			enemy.direction = "left";
-		}
-	} else {
-		if(dy > 0){
-			enemy.direction = "down";
-		} else {
-			enemy.direction = "up";
-		}
-	}
-
-	enemy.x += x;
-	enemy.y += y;
-}
-// сменяне на картинката на противника, в зависимост от какво действие прави
-enemy.animate = function() {
-	enemy.spriteCounter++;
-	if (enemy.spriteCounter > 10) {
-		if (enemy.sprite == 1 || enemy.sprite == 0) {
-			enemy.sprite = 2;
-		} else if (enemy.sprite == 2 || enemy.sprite == 0) {
-			enemy.sprite = 1;
-		}
-		enemy.spriteCounter = 0;
-	}
-	// TODO: по бърз начин за зареждане на снимки
-	let path = "enemy/" + enemy.direction + enemy.sprite + ".png";
-	enemy.img.src = path;
+// премахва вдички противници
+killBtn.onclick = function() {
+	enemies = [];
 }
 
+function intersects(a, b){
+	let x1 = a.x;
+	let y1 = a.y;
+	let x2 = b.x;
+	let y2 = b.y;
+	let h1 = a.height;
+	let w1 = a.width;
+	let h2 = b.height;
+	let w2 = b.width;
+
+	if (x2 > x1 + w1 || x1 > x2 + w2) {
+		return false;
+	} 
+	if (y2 > y1 + h1 || y1 > y2 + h2) {
+		return false;
+	} 
+
+	return true;
+}

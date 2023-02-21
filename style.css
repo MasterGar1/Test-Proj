@@ -4,6 +4,11 @@ body {
 }
 
 button {
-	margin: 10px;
+	margin-right: 10%;
+	float: right;
 	background-color: green;
+}
+
+.third {
+	display: inline;
 }

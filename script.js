@@ -285,7 +285,7 @@ killBtn.onclick = function() {
 	enemies = [];
 }
 
-function intersects(a, b){
+function intersection(a, b){
 	let x1 = a.x;
 	let y1 = a.y;
 	let x2 = b.x;

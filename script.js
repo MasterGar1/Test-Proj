@@ -8,6 +8,8 @@ const tilesY = 18;
 const tileSize = 32;
 cvs.width = tilesX * tileSize;
 cvs.height = tilesY * tileSize;
+let clientX = 0;
+let clientY = 0;
 
 class Hero {
 	constructor(x, y, speed) {
@@ -27,10 +29,9 @@ class Hero {
 
 		this.health = 50;
 		this.damage = 5;
-		this.attackLength = 50;
+		this.attackLength = 64;
 		this.attackWidth = 32;
 		this.hitbox = { x: this.x, y: this.y, width: this.tileSize, height: this.tileSize };
-		this.attackDirection = 0;
 	}
 
 	// обновяване на всички събития, случили се на героя при всяко завъртане на играта
@@ -123,17 +124,43 @@ class Hero {
 		this.img.src = path;
 	}
 
-	attackRange(clientX, clientY) {
+	attackRange() {
 		let hx = this.x + tileSize / 2;
 		let hy = this.y + tileSize / 2;
 		let dx = hx - clientX;
 		let dy = hy - clientY;
 		let distance = Math.sqrt(dx ** 2 + dy ** 2);
 		let sin = dy / distance;
-		this.attackDirection = -Math.asin(sin);
-		if((dx > 0 && dy < 0) ||(dx > 0 && dy > 0)){
-			this.attackDirection = Math.PI - this.attackDirection;
-		}
+		let cos = dx / distance;
+		let ex = hx - cos * this.attackLength;
+		let ey = hy - sin * this.attackLength;
+		let wx = hx - cos * this.attackWidth / 2;
+		let wy = hy - sin * this.attackWidth / 2;
+		let distE = Math.sqrt((hx - ex) ** 2 + (hy - ey) ** 2);
+
+		let ax = hx + hy - wy;
+		let ay = hy - hx + wx;
+		let bx = hx - hy + wy;
+		let by = hy + hx - wx;
+
+		let cx = ax - ay + hy;
+		let cy = ax + ay - hx;
+		let fx = bx + by - hy;
+		let fy = by - bx + hx;
+
+
+		ctx.beginPath();
+		ctx.moveTo(hx, hy);
+		ctx.lineTo(ex, ey);
+		ctx.stroke();
+
+		ctx.beginPath();
+		ctx.moveTo(ax, ay);
+		ctx.lineTo(bx, by);
+		ctx.lineTo(fx, fy);
+		ctx.lineTo(cx, cy);
+		ctx.closePath();
+		ctx.stroke();
 	}
 }
 
@@ -251,19 +278,7 @@ function draw() {
 	// герой
 	ctx.drawImage(hero.img, hero.x, hero.y, tileSize, tileSize);
 
-	ctx.beginPath();
-    ctx.arc(hero.x + tileSize/2, hero.y + tileSize/2, 10, 0, Math.PI*2);
-    ctx.closePath();
-    ctx.save();
-    ctx.translate(hero.x + tileSize / 2, hero.y + tileSize / 2);
-	ctx.rotate(hero.attackDirection);
-	ctx.strokeRect(0, -hero.attackWidth/2, hero.attackLength, hero.attackWidth);
-	ctx.restore();
-	for(let enemy of enemies){
-		if(intersection({x: 0, y: -hero.attackWidth/2, width: hero.attackLength, height: hero.attackWidth}, enemy.hitbox)){
-			console.log("hi");
-		}
-	}
+	hero.attackRange();
 }
 // команди от клавиши
 document.onkeydown = function (e) {
@@ -317,9 +332,8 @@ killBtn.onclick = function () {
 }
 // засича къде се намира мишката
 document.onmousemove = function(e) {
-	let clientX = e.clientX;
-	let clientY = e.clientY;
-	hero.attackRange(clientX, clientY);
+	clientX = e.clientX;
+	clientY = e.clientY;
 }
 // проверява дали два правоъгълника се пресичат
 function intersection(a, b) {

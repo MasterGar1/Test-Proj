@@ -1,9 +1,10 @@
+// import Collisions from "collisions";
 const cvs = document.getElementById("canvas");
 const ctx = cvs.getContext("2d");
 const spawnBtn = document.getElementById("spawn");
 const killBtn = document.getElementById("kill");
 
-const tilesX = 18;
+const tilesX = 24;
 const tilesY = 18;
 const tileSize = 32;
 cvs.width = tilesX * tileSize;
@@ -134,19 +135,17 @@ class Hero {
 		let cos = dx / distance;
 		let ex = hx - cos * this.attackLength;
 		let ey = hy - sin * this.attackLength;
-		let wx = hx - cos * this.attackWidth / 2;
-		let wy = hy - sin * this.attackWidth / 2;
 		let distE = Math.sqrt((hx - ex) ** 2 + (hy - ey) ** 2);
 
-		let ax = hx + hy - wy;
-		let ay = hy - hx + wx;
-		let bx = hx - hy + wy;
-		let by = hy + hx - wx;
+		let ax = hx + sin * this.attackWidth / 2;
+		let ay = hy - cos * this.attackWidth / 2;
+		let bx = 2 * hx - ax;
+		let by = 2 * hy - ay;
 
-		let cx = ax - ay + hy;
-		let cy = ax + ay - hx;
-		let fx = bx + by - hy;
-		let fy = by - bx + hx;
+		let cx = ex - ey + hy;
+		let cy = ey + ex - hx;
+		let fx = 2 * ex - cx;
+		let fy = 2 * ey - cy;
 
 
 		ctx.beginPath();

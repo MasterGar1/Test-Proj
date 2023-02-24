@@ -2,6 +2,7 @@ const cvs = document.getElementById("canvas");
 const ctx = cvs.getContext("2d");
 const spawnBtn = document.getElementById("spawn");
 const killBtn = document.getElementById("kill");
+const powerBtn = document.getElementById("power");
 const input = document.getElementById("input");
 input.value = "Do you like the game?";
 
@@ -12,11 +13,18 @@ cvs.width = tilesX * tileSize;
 cvs.height = tilesY * tileSize;
 let clientX = 0;
 let clientY = 0;
+let powerupImages = [new Image(), new Image(), new Image(), new Image(), new Image()];
+powerupImages[0].src = "powerups/aspeed.png";
+powerupImages[1].src = "powerups/attack.png";
+powerupImages[2].src = "powerups/health.png";
+powerupImages[3].src = "powerups/length.png";
+powerupImages[4].src = "powerups/width.png";
 
 class Hero {
 	constructor(x, y, speed) {
 		this.x = x;
 		this.y = y;
+		this.size = tileSize;
 		this.speed = speed;
 		this.img = new Image();
 		this.img.src = "hero/down0.png";
@@ -33,24 +41,37 @@ class Hero {
 		this.damage = 5;
 		this.attackLength = 48;
 		this.attackWidth = 32;
-		this.hitbox = { x: this.x, y: this.y, width: this.tileSize, height: this.tileSize };
+		this.attackCharge = 0;
+		this.attackSpeed = 1;
+		this.mousePressed = false;
+
 	}
 	// обновяване на всички събития, случили се на героя при всяко завъртане на играта
 	update() {
 		this.animate();
 		this.move();
+		if(this.mousePressed){
+			this.hit();
+		}
 	}
 	// рисуваме героя и неговото поле за атака
 	draw(){
 		let attackPolygon = hero.attackRange();
+
+		ctx.fillStyle = "red";
 		ctx.beginPath();
-		for(let i = 0; i < attackPolygon.length; i++){
-			if(i == 0){
-				ctx.moveTo(attackPolygon[i][0], attackPolygon[i][1]);
-			} else {
-				ctx.lineTo(attackPolygon[i][0], attackPolygon[i][1]);
-			}
-		}
+		ctx.moveTo(attackPolygon[0][0], attackPolygon[0][1]);
+		ctx.lineTo(attackPolygon[1][0], attackPolygon[1][1]);
+		ctx.lineTo(attackPolygon[4][0], attackPolygon[4][1]);
+		ctx.lineTo(attackPolygon[5][0], attackPolygon[5][1]);
+		ctx.closePath();
+		ctx.fill();
+
+		ctx.beginPath();
+		ctx.moveTo(attackPolygon[0][0], attackPolygon[0][1]);
+		ctx.lineTo(attackPolygon[1][0], attackPolygon[1][1]);
+		ctx.lineTo(attackPolygon[2][0], attackPolygon[2][1]);
+		ctx.lineTo(attackPolygon[3][0], attackPolygon[3][1]);
 		ctx.closePath();
 		ctx.stroke();
 
@@ -116,8 +137,6 @@ class Hero {
 		if (this.left || this.right || this.up || this.down) {
 			this.x += dx;
 			this.y += dy;
-			this.hitbox.x = this.x;
-			this.hitbox.y = this.y;
 		}
 	}
 	// сменяне на картинката на героя, в зависимост от какво действие прави
@@ -149,8 +168,6 @@ class Hero {
 		let distance = Math.sqrt(dx ** 2 + dy ** 2);
 		let sin = dy / distance;
 		let cos = dx / distance;
-		let ex = hx - cos * this.attackLength;
-		let ey = hy - sin * this.attackLength;
 
 		let ax = hx + sin * this.attackWidth / 2;
 		let ay = hy - cos * this.attackWidth / 2;
@@ -162,13 +179,34 @@ class Hero {
 		let fx = bx - this.attackLength * cos;
 		let fy = by - this.attackLength * sin;
 
-		let polygon = [ [ax, ay] , [bx, by] , [fx, fy] , [cx, cy] ];
+		let px = ax - this.attackLength * cos * (this.attackCharge / 100);
+		let py = ay - this.attackLength * sin * (this.attackCharge / 100);
+		let qx = bx - this.attackLength * cos * (this.attackCharge / 100);
+		let qy = by - this.attackLength * sin * (this.attackCharge / 100);
+
+		let polygon = [ [ax, ay] , [bx, by] , [fx, fy] , [cx, cy] , [qx, qy] , [px , py]];
 		return polygon;
+	}
+	// проверява дали има противник
+	hit() {
+		this.attackCharge += this.attackSpeed;
+		if(this.attackCharge >= 100){
+			for(let enemy in enemies){
+				let hits = enemy.checkIntersection();
+				if(hits){
+					enemy.health -= this.damage;
+					console.log(enemy.health);
+				}
+			}
+			this.attackCharge = 0;
+		}
 	}
 }
 
 class Enemy {
 	constructor(enemyNum) {
+		this.x = 0;
+		this.y = 0;
 		this.speed = 2;
 		this.img = new Image();
 		this.img.src = "enemy/down0.png";
@@ -176,7 +214,7 @@ class Enemy {
 		this.direction = "down";
 		this.spriteCounter = 0;
 		this.sprite = 0;
-		this.hitbox = { x: this.x, y: this.y, width: tileSize, height: tileSize };
+		this.size = tileSize;
 	}
 	// генерира статистики
 	generateStats(enemyNum) {
@@ -219,8 +257,6 @@ class Enemy {
 
 		this.x += x;
 		this.y += y;
-		this.hitbox.x = this.x;
-		this.hitbox.y = this.y;
 	}
 	// сменяне на картинката на противника, в зависимост от какво действие прави
 	animate() {
@@ -237,18 +273,44 @@ class Enemy {
 		let path = "enemy/" + this.direction + this.sprite + ".png";
 		this.img.src = path;
 	}
+	// проверява дали противника е в обхвата на героя
+	checkIntersection() {
+		let a = [this.x, this.y];
+		let b = [this.x + this.size, this.y];
+		let c = [this.x, this.y + this.size];
+		let d = [this.x + this.size, this.y + this.size];
+		let range = hero.attackRange();
+		let intersects = false;
+	
+		if(PointInPoly(a, range) || PointInPoly(b, range) || PointInPoly(c, range) || PointInPoly(d, range)) {
+			intersects = !intersects;
+		}
+	
+		return intersects;
+	}
+}
+
+class PowerUp {
+	constructor() {
+		this.type = Math.floor(Math.random() * 5);
+		this.x = Math.floor(Math.random() * tilesX);
+		this.y = Math.floor(Math.random() * tilesY);
+		this.size = tileSize;
+		this.image = powerupImages[this.type];
+	}
 }
 
 let hero = new Hero(10, 10, 5);
 
 let enemies = [];
 
+let powerups = [];
+
 window.requestAnimationFrame(gameLoop);
 
 let secondsPassed;
 let oldTimeStamp;
 let fps;
-
 // върти играта (game loop)
 function gameLoop(timeStamp) {
 	// сметки за fps
@@ -260,17 +322,9 @@ function gameLoop(timeStamp) {
 
 	for (let enemy of enemies) {
 		enemy.update();
-		if (intersection(enemy.hitbox, hero.hitbox)) {
-			input.value = "beshe udaren";
-		}
 	}
 
-	if(input.value.length >= 2){
-		if(input.value[input.value.length - 2] == 'n' && input.value[input.value.length - 1] == 'o'){
-			input.value = input.value.slice(0, input.value.length - 2);
-			input.value += "yes";
-		}
-	}
+	notoyes();
 
 	draw();
 	window.requestAnimationFrame(gameLoop);
@@ -283,6 +337,11 @@ function draw() {
 
 	// карта
 	ctx.strokeRect(0, 0, cvs.width, cvs.height);
+
+	// powers
+	for (let power of powerups) {
+		ctx.drawImage(power.image, power.x * tileSize, power.y * tileSize);
+	}
 
 	// противници
 	for (let enemy of enemies) {
@@ -338,6 +397,10 @@ document.onkeyup = function (e) {
 spawnBtn.onclick = function () {
 	enemies.push(new Enemy(enemies.length - 1));
 }
+// поставя powerup на картата
+powerBtn.onclick = function(){
+	powerups.push(new PowerUp());
+}
 // премахва вдички противници
 killBtn.onclick = function () {
 	enemies = [];
@@ -348,7 +411,7 @@ document.onmousemove = function(e) {
 	clientY = e.clientY;
 }
 // проверява дали два правоъгълника се пресичат
-function intersection(a, b) {
+function intersectionRect(a, b) {
 	if (b.x > a.x + a.width || a.x > b.x + b.width) {
 		return false;
 	}
@@ -358,7 +421,45 @@ function intersection(a, b) {
 
 	return true;
 }
+// проверява дали дадена точка е в многоъгълник
+function PointInPoly(point, poly) {
+	let x = point[0];
+	let y = point[1];
+
+	let isInside = false;
+	for(let i = 0, j = poly.length - 1; i < poly.length; j = i++){
+		let xi = poly[i][0];
+		let yi = poly[i][1];
+		let xj = poly[j][0];
+		let yj = poly[j][1];
+
+		if(((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)){
+			isInside = !isInside;
+			break;
+		}
+	}
+
+	return isInside;
+}
+// проверява натискане на мишката
+cvs.onmousedown = function(e) {
+	hero.mousePressed = true;
+}
+// проверява отпускане на мишката
+cvs.onmouseup = function(e) {
+	hero.mousePressed = false;
+	hero.attackCharge = 0;
+}
 
 input.onmousedown = function(e){
 	input.value = "";
+}
+
+function notoyes() {
+	if(input.value.length >= 2){
+		if(input.value[input.value.length - 2] == 'n' && input.value[input.value.length - 1] == 'o'){
+			input.value = input.value.slice(0, input.value.length - 2);
+			input.value += "yes";
+		}
+	}
 }

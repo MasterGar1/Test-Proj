@@ -1,8 +1,0 @@
-{
-  "name": "my-game",
-  "version": "0.0.0",
-  "type": "module",
-  "dependencies": {
-    "collisions": "^2.0.13"
-  }
-}

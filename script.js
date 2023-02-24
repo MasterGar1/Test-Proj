@@ -1,8 +1,9 @@
-// import Collisions from "collisions";
 const cvs = document.getElementById("canvas");
 const ctx = cvs.getContext("2d");
 const spawnBtn = document.getElementById("spawn");
 const killBtn = document.getElementById("kill");
+const input = document.getElementById("input");
+input.value = "Do you like the game?";
 
 const tilesX = 24;
 const tilesY = 18;
@@ -30,15 +31,30 @@ class Hero {
 
 		this.health = 50;
 		this.damage = 5;
-		this.attackLength = 64;
+		this.attackLength = 48;
 		this.attackWidth = 32;
 		this.hitbox = { x: this.x, y: this.y, width: this.tileSize, height: this.tileSize };
 	}
-
 	// обновяване на всички събития, случили се на героя при всяко завъртане на играта
 	update() {
 		this.animate();
 		this.move();
+	}
+	// рисуваме героя и неговото поле за атака
+	draw(){
+		let attackPolygon = hero.attackRange();
+		ctx.beginPath();
+		for(let i = 0; i < attackPolygon.length; i++){
+			if(i == 0){
+				ctx.moveTo(attackPolygon[i][0], attackPolygon[i][1]);
+			} else {
+				ctx.lineTo(attackPolygon[i][0], attackPolygon[i][1]);
+			}
+		}
+		ctx.closePath();
+		ctx.stroke();
+
+		ctx.drawImage(this.img, this.x, this.y, tileSize, tileSize);
 	}
 	// движение според ъгъла, подаден чрез комбинация от клавиши
 	move() {
@@ -124,7 +140,7 @@ class Hero {
 		let path = "hero/" + this.direction + this.sprite + ".png";
 		this.img.src = path;
 	}
-
+	// смятаме точките на полето за атака
 	attackRange() {
 		let hx = this.x + tileSize / 2;
 		let hy = this.y + tileSize / 2;
@@ -135,31 +151,19 @@ class Hero {
 		let cos = dx / distance;
 		let ex = hx - cos * this.attackLength;
 		let ey = hy - sin * this.attackLength;
-		let distE = Math.sqrt((hx - ex) ** 2 + (hy - ey) ** 2);
 
 		let ax = hx + sin * this.attackWidth / 2;
 		let ay = hy - cos * this.attackWidth / 2;
 		let bx = 2 * hx - ax;
 		let by = 2 * hy - ay;
 
-		let cx = ex - ey + hy;
-		let cy = ey + ex - hx;
-		let fx = 2 * ex - cx;
-		let fy = 2 * ey - cy;
+		let cx = ax - this.attackLength * cos;
+		let cy = ay - this.attackLength * sin;
+		let fx = bx - this.attackLength * cos;
+		let fy = by - this.attackLength * sin;
 
-
-		ctx.beginPath();
-		ctx.moveTo(hx, hy);
-		ctx.lineTo(ex, ey);
-		ctx.stroke();
-
-		ctx.beginPath();
-		ctx.moveTo(ax, ay);
-		ctx.lineTo(bx, by);
-		ctx.lineTo(fx, fy);
-		ctx.lineTo(cx, cy);
-		ctx.closePath();
-		ctx.stroke();
+		let polygon = [ [ax, ay] , [bx, by] , [fx, fy] , [cx, cy] ];
+		return polygon;
 	}
 }
 
@@ -186,6 +190,10 @@ class Enemy {
 	update() {
 		this.animate();
 		this.follow();
+	}
+	// рисуваме противника
+	draw(){
+		ctx.drawImage(this.img, this.x, this.y, tileSize, tileSize);
 	}
 	// преследва героя
 	follow() {
@@ -253,7 +261,14 @@ function gameLoop(timeStamp) {
 	for (let enemy of enemies) {
 		enemy.update();
 		if (intersection(enemy.hitbox, hero.hitbox)) {
-			
+			input.value = "beshe udaren";
+		}
+	}
+
+	if(input.value.length >= 2){
+		if(input.value[input.value.length - 2] == 'n' && input.value[input.value.length - 1] == 'o'){
+			input.value = input.value.slice(0, input.value.length - 2);
+			input.value += "yes";
 		}
 	}
 
@@ -271,13 +286,11 @@ function draw() {
 
 	// противници
 	for (let enemy of enemies) {
-		ctx.drawImage(enemy.img, enemy.x, enemy.y, tileSize, tileSize);
+		enemy.draw();
 	}
 
 	// герой
-	ctx.drawImage(hero.img, hero.x, hero.y, tileSize, tileSize);
-
-	hero.attackRange();
+	hero.draw();
 }
 // команди от клавиши
 document.onkeydown = function (e) {
@@ -344,4 +357,8 @@ function intersection(a, b) {
 	}
 
 	return true;
+}
+
+input.onmousedown = function(e){
+	input.value = "";
 }

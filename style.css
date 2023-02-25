@@ -5,6 +5,28 @@ body {
 
 button {
 	float: right;
-	margin-right: 5px;
 	background-color: green;
+	margin-right: 10px;
+}
+
+canvas {
+	position: absolute;
+}
+
+p {
+	margin-top: 0px;
+	margin-bottom: 0px;
+	margin-right: 20px;
+	float: right;
+	user-select: none;
+}
+
+br {
+	user-select: none;
+}
+
+input {
+	float: right;
+	margin-right: 20px;
+	user-select: none;
 }
